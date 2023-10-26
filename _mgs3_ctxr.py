@@ -43,7 +43,7 @@ def process_ctxr_file(input_folder, filename):
         #                         0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 
         #                         0x00, 0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 
         #                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
-        
+
         # Replace the twelfth byte in the DDS header with value2 in Signed Int format
         dds_header[12:16] = array('B', struct.pack('<i', value2))
 
@@ -64,10 +64,10 @@ def process_ctxr_files_in_directory(input_folder):
                 process_ctxr_file(root, filename)
 
 def process_dds_file(input_folder, filename):
-    # Открываем файл .ctxr в бинарном режиме для чтения
+    # Open the .dds file in binary mode for reading
     input_path = os.path.join(input_folder, filename)
     with open(input_path, 'rb') as dds_file:
-        # Читаем данные из .ctxr файла
+        # Reading data from a .dds file
         data = dds_file.read()
         print("File name: "+filename)
 
@@ -81,15 +81,24 @@ def process_dds_file(input_folder, filename):
 
         # Read all bytes after offset 0x80
         additional_data = data[0x80:]
+        size_of_additional_data = len(additional_data)
 
         output_filename = os.path.splitext(filename)[0] + '.ctxr'
         output_path = os.path.join(input_folder, output_filename)
-        with open(output_path, 'rb+') as ctxr_file:
-            #data = ctxr_file.read()
-            #print("File name: "+output_filename)
-            #header_data = data[0x0:84]
-            ctxr_file.seek(132)
-            ctxr_file.write(additional_data)
+        with open(output_path, 'rb') as ctxr_file:
+            #Reading data from a .ctxr file
+            data_ctxr = ctxr_file.read()
+            
+            header = data_ctxr[0x00:0x08]
+            header2 = data_ctxr[0x0C:0x80]
+
+            length = struct.unpack('>i', data_ctxr[0x80:0x84])[0]
+            print("size: "+str(length))
+
+            #extra_data = data_ctxr[0x84:0x84 + length]
+            extra_data = data_ctxr[0x84 + length:]
+            with open(output_path, 'wb') as new_ctxr_file:
+                new_ctxr_file.write(header+struct.pack('>h', value2)+struct.pack('>h', value1)+header2+struct.pack('>i', size_of_additional_data)+additional_data+extra_data)
      
 
 def process_dds_files_in_directory(input_folder):
